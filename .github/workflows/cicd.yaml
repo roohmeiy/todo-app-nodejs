@@ -41,10 +41,11 @@ jobs:
           docker build -t roohmeiy/todo-app-nodejs:${{ github.sha }} .
           docker push roohmeiy/todo-app-nodejs:${{ github.sha }}
 
-      - name: Configure Kubernetes
-        uses: azure/k8s-set-context@v3
-        with:
-          kubeconfig: ${{ secrets.KUBECONFIG }}
+      - name: Configure kubeconfig
+        run: |
+         mkdir -p ~/.kube
+         echo "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
+         chmod 600 ~/.kube/config
     
       - name: Deploy to Kubernetes
         run: |
