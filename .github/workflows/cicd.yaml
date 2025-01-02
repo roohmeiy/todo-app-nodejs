@@ -31,6 +31,20 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
+      - name: Run Code Quality Checks
+        continue-on-error: true
+        run: |
+          echo "Running code quality checks (warnings only)..."
+          npx eslint . --ext .js --no-error-on-unmatched-pattern || true
+          echo "Code style check complete - see above for any suggestions"
+
+      - name: Run Security Audit
+        continue-on-error: true
+        run: |
+          echo "Checking for security vulnerabilities..."
+          npm audit || true
+          echo "Security check complete - see above for any recommendations"
+
       - name: Run Tests
         run: npm test
 
