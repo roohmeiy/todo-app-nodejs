@@ -41,13 +41,20 @@ jobs:
           docker build -t roohmeiy/todo-app-nodejs:${{ github.sha }} .
           docker push roohmeiy/todo-app-nodejs:${{ github.sha }}
 
-      - name: Set up Kubectl
-        uses: azure/setup-kubectl@v3
+      - name: Configure Kubernetes
+        uses: azure/k8s-set-context@v3
         with:
-          version: 'latest'
-
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+    
       - name: Deploy to Kubernetes
         run: |
+          # Verify cluster connection
+          kubectl cluster-info
+
+          # Update image tag in deployment
+          sed -i "s|image:.*|image: roohmeiy/todo-app-nodejs:${GITHUB_SHA}|" k8s/deployment.yml
+
+          # Apply manifests
           kubectl apply -f k8s/deployment.yml
           kubectl apply -f k8s/service.yml
           kubectl apply -f k8s/ingress.yml
