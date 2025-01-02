@@ -31,6 +31,11 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
+      - name: Fix file permissions
+        run: |
+          chmod -R 755 node_modules/.bin
+          chmod +x ./node_modules/.bin/jest
+
       - name: Run Code Quality Checks
         continue-on-error: true
         run: |
