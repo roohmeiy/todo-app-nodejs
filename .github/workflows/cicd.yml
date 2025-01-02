@@ -109,7 +109,7 @@ jobs:
         with:
           server_address: smtp.gmail.com
           server_port: 587
-          username: ${{ secrets.EMAIL_USERNAME }}
+          username: payalsharma19082004@gmail.com
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "Deployment Successful"
           body: |
