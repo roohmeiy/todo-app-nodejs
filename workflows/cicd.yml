@@ -38,13 +38,13 @@ jobs:
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
+          username: roohmeiy
           password: ${{ secrets.DOCKER_PERSONAL_ACCESS_TOKEN }}
 
       - name: Build Docker Image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/todo-app-nodejs:${{ github.sha }} .
-          docker push ${{ secrets.DOCKER_USERNAME }}/todo-app-nodejs:${{ github.sha }}
+          docker build -t roohmeiy/todo-app-nodejs:${{ github.sha }} .
+          docker push roohmeiy/todo-app-nodejs:${{ github.sha }}
 
       - name: Set up Kubectl
         uses: azure/setup-kubectl@v3
@@ -62,7 +62,7 @@ jobs:
         with:
           server_address: smtp.gmail.com
           server_port: 587
-          username: ${{ secrets.EMAIL_USERNAME }}
+          username: payalsharma19082004@gmail.com
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "Deployment Successful"
           body: "The Node.js application has been successfully deployed to Kubernetes."
@@ -77,7 +77,7 @@ jobs:
         with:
           server_address: smtp.gmail.com
           server_port: 587
-          username: ${{ secrets.EMAIL_USERNAME }}
+          username: payalsharma19082004@gmail.com
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "Deployment Failed"
           body: "The deployment of the Node.js application to Kubernetes has failed."
