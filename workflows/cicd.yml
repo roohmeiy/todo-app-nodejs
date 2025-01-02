@@ -1,0 +1,84 @@
+name: CI/CD Pipeline
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  
+  test:
+    runs-on: ubuntu-latest
+    needs: code-quality
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run Tests
+        run: npm test
+
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PERSONAL_ACCESS_TOKEN }}
+
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/todo-app-nodejs:${{ github.sha }} .
+          docker push ${{ secrets.DOCKER_USERNAME }}/todo-app-nodejs:${{ github.sha }}
+
+      - name: Set up Kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f k8s/deployment.yml
+          kubectl apply -f k8s/service.yml
+          kubectl apply -f k8s/ingress.yml
+
+      - name: Notify on Success
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "Deployment Successful"
+          body: "The Node.js application has been successfully deployed to Kubernetes."
+          to: ${{ secrets.NOTIFY_EMAIL }}
+
+  failure-notification:
+    runs-on: ubuntu-latest
+    if: failure()
+    steps:
+      - name: Notify on Failure
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "Deployment Failed"
+          body: "The deployment of the Node.js application to Kubernetes has failed."
+          to: ${{ secrets.NOTIFY_EMAIL }}
