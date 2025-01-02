@@ -8,5 +8,5 @@ image:
   repository: roohmeiy/todo-app-nodejs
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "latest"
+  tag: "12584804958"
 
