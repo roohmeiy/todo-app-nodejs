@@ -107,12 +107,11 @@
 #         with:
 #           server_address: smtp.gmail.com
 #           server_port: 587
-#           username: payalsharma19082004@gmail.com
+#           username: ${{ secrets.EMAIL_USERNAME }}
 #           password: ${{ secrets.EMAIL_PASSWORD }}
 #           subject: "Deployment Failed"
 #           body: "The deployment of the Node.js application to Kubernetes has failed."
 #           to: ${{ secrets.NOTIFY_EMAIL }}
-
 
 name: CI/CD Pipeline
 
@@ -214,27 +213,33 @@ jobs:
           git commit -m "Update tag in Helm chart"
           git push
 
-  deploy-to-minikube:
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: self-hosted
     needs: update-newtag-in-helm-chart
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up kubectl
+      - name: Deploy to Minikube
         run: |
-          echo "Setting up kubectl for Minikube"
+          # Ensure we're using minikube context
           kubectl config use-context minikube
+          
+          # Add or update helm repo if needed
+          # helm repo add <repo-name> <repo-url>
+          # helm repo update
+          
+          # Deploy/upgrade the helm chart
+          helm upgrade --install todo-app ./helm/todo-app-chart \
+            --namespace default \
+            --create-namespace \
+            --wait \
+            --timeout 5m
 
-      - name: Deploy with Helm
+      - name: Verify deployment
         run: |
-          echo "Deploying with Helm"
-          helm upgrade --install todo-app ./helm/todo-app-chart --set image.tag=${{ github.run_id }}
-
-      - name: Verify Deployment
-        run: |
-          kubectl get pods
-          kubectl get svc
+          kubectl get pods -n default
+          kubectl get services -n default
 
   failure-notification:
     runs-on: ubuntu-latest
@@ -245,7 +250,7 @@ jobs:
         with:
           server_address: smtp.gmail.com
           server_port: 587
-          username: payalsharma19082004@gmail.com
+          username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "Deployment Failed"
           body: "The deployment of the Node.js application to Kubernetes has failed."
