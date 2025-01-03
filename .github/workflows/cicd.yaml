@@ -213,45 +213,90 @@ jobs:
           git commit -m "Update tag in Helm chart"
           git push
 
-  deploy:
-    runs-on: self-hosted
-    needs: update-newtag-in-helm-chart
+  deploy-to-minikube:
+    runs-on: ubuntu-latest
+    needs: build-and-push
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up SSH for local deployment
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.LOCAL_HOST }}       # IP or Hostname of your local machine
+          username: ${{ secrets.LOCAL_USER }}   # Your SSH username on the local machine
+          key: ${{ secrets.LOCAL_SSH_KEY }}     # The private SSH key stored in GitHub Secrets
+          port: 22  # Default SSH port (adjust if needed)
+
       - name: Deploy to Minikube
         run: |
-          # Ensure we're using minikube context
-          kubectl config use-context minikube
-          
-          # Add or update helm repo if needed
-          # helm repo add <repo-name> <repo-url>
-          # helm repo update
-          
-          # Deploy/upgrade the helm chart
-          helm upgrade --install todo-app ./helm/todo-app-chart \
-            --namespace default \
-            --create-namespace \
-            --wait \
-            --timeout 5m
+          ssh -o StrictHostKeyChecking=no ${{ secrets.LOCAL_USER }}@${{ secrets.LOCAL_HOST }} << 'EOF'
+            # Start Minikube if it's not already running
+            minikube start
 
-      - name: Verify deployment
-        run: |
-          kubectl get pods -n default
-          kubectl get services -n default
+            # Set kubectl context to Minikube
+            kubectl config use-context minikube
 
-  failure-notification:
+            # Ensure Helm is initialized
+            helm repo update
+
+            # Deploy the updated Helm chart with the new image tag
+            helm upgrade --install todo-app-nodejs helm/todo-app-chart --namespace default --create-namespace
+
+            # Check the status of the deployment
+            kubectl get pods -n default
+
+            # Optional: Get Minikube service URL to access the app
+            minikube service todo-app-nodejs --url
+          EOF
+  success-notification:
+    needs: deploy
     runs-on: ubuntu-latest
-    if: failure()
+    if: success()
     steps:
-      - name: Notify on Failure
+      - name: Send Success Email
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 587
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "Deployment Failed"
-          body: "The deployment of the Node.js application to Kubernetes has failed."
+          subject: "✅ Deployment Successful"
+          body: |
+            The deployment of the Node.js application was successful!
+            
+            Details:
+            - Deployment ID: ${{ github.run_id }}
+            - Repository: ${{ github.repository }}
+            - Branch: ${{ github.ref }}
+            - Triggered by: ${{ github.actor }}
+            - Image Tag: roohmeiy/todo-app-nodejs:${{ github.run_id }}
+            
+            View the deployment: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          to: ${{ secrets.NOTIFY_EMAIL }}
+
+  failure-notification:
+    if: failure()
+    runs-on: ubuntu-latest
+    needs: [test, push, update-newtag-in-helm-chart, deploy]
+    steps:
+      - name: Send Failure Email
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "❌ Deployment Failed"
+          body: |
+            The deployment of the Node.js application has failed.
+            
+            Details:
+            - Failed Job ID: ${{ github.run_id }}
+            - Repository: ${{ github.repository }}
+            - Branch: ${{ github.ref }}
+            - Triggered by: ${{ github.actor }}
+            
+            Please check the workflow logs for more details:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           to: ${{ secrets.NOTIFY_EMAIL }}
