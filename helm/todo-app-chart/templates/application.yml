@@ -1,24 +1,24 @@
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: todo-app
-  namespace: argocd
-  annotations:
-    argocd.argoproj.io/project: default
-    argocd-notifications.argoproj.io/subscribe.on-sync-succeeded.email: roohemiy@gmail.com
-    argocd-notifications.argoproj.io/subscribe.on-sync-failed.email: roohmeiy@gmail.com
+# apiVersion: argoproj.io/v1alpha1
+# kind: Application
+# metadata:
+#   name: todo-app
+#   namespace: argocd
+#   annotations:
+#     argocd.argoproj.io/project: default
+#     argocd-notifications.argoproj.io/subscribe.on-sync-succeeded.email: roohemiy@gmail.com
+#     argocd-notifications.argoproj.io/subscribe.on-sync-failed.email: roohmeiy@gmail.com
 
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/roohmeiy/todo-app-nodejs.git
-    path: helm/todo-app-chart
-    targetRevision: main
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: todo-app-ns
-  syncPolicy:
-    automated:
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
+# spec:
+#   project: default
+#   source:
+#     repoURL: https://github.com/roohmeiy/todo-app-nodejs.git
+#     path: helm/todo-app-chart
+#     targetRevision: main
+#   destination:
+#     server: https://kubernetes.default.svc
+#     namespace: todo-app-ns
+#   syncPolicy:
+#     automated:
+#       selfHeal: true
+#     syncOptions:
+#       - CreateNamespace=true
