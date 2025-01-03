@@ -150,7 +150,7 @@ jobs:
             echo "Checking pods..."
             kubectl get pods -n todo-app-ns
             sleep 60
-            kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns &
+            nohup kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns > /tmp/port-forward.log 2>&1 &
             
             
   success-notification:
