@@ -90,7 +90,7 @@ jobs:
       - name: Update tag in Helm chart
         run: |
           # sed -i 's/tag: .*/tag: "${{github.run_id}}"/' helm/todo-app-chart/values.yaml
-          sed -i "s/tag:.*/tag: ${github.run_id}/" helm/todo-app-chart/values.yaml
+          sed -i "s/tag:.*/tag: ${GITHUB_RUN_ID}/" helm/todo-app-chart/values.yaml
       - name: Commit and push changes
         run: |
           git config --global user.email "roohmeiy@gmail.com"
@@ -134,7 +134,7 @@ jobs:
             helm upgrade --install todo-app-nodejs todo-app-chart \
              --namespace todo-app-ns --create-namespace \
              --set image.repository=docker.io/roohmeiy/todo-app-nodejs \
-             --set image.tag=${github.run_id} \
+             --set image.tag=${GITHUB_RUN_ID} \
               --set image.pullPolicy=Always --debug
 
             
