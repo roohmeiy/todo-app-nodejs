@@ -89,8 +89,9 @@ jobs:
 
       - name: Update tag in Helm chart
         run: |
-          # sed -i 's/tag: .*/tag: "${{github.run_id}}"/' helm/todo-app-chart/values.yaml
-          sed -i "s/tag:.*/tag: ${GITHUB_RUN_ID}/" helm/todo-app-chart/values.yaml
+          sed -i 's/tag: .*/tag: "${{github.run_id}}"/' helm/todo-app-chart/values.yaml
+          # sed -i "s/tag:.*/tag: ${GITHUB_RUN_ID}/" helm/todo-app-chart/values.yaml
+
       - name: Commit and push changes
         run: |
           git config --global user.email "roohmeiy@gmail.com"
@@ -122,6 +123,10 @@ jobs:
             echo "Listing directory contents..."
             ls -la
             
+            echo "Loading image into Kind cluster..."
+            docker pull roohmeiy/todo-app-nodejs:${{ github.run_id }}
+            kind load docker-image roohmeiy/todo-app-nodejs:${{ github.run_id }} --name my-cluster
+
             echo "Checking helm-charts directory..."
             cd /home/ubuntu/todo-app-nodejs/helm || exit 1
             ls -la
@@ -131,24 +136,25 @@ jobs:
             
             echo "Running helm with debug..."
             # helm upgrade --install todo-app-nodejs todo-app-chart --namespace todo-app-ns --create-namespace --debug
+            
             helm upgrade --install todo-app-nodejs todo-app-chart \
              --namespace todo-app-ns --create-namespace \
-             --set image.repository=docker.io/roohmeiy/todo-app-nodejs \
-             --set image.tag=${GITHUB_RUN_ID} \
-              --set image.pullPolicy=Always --debug
-
+             --set image.repository=roohmeiy/todo-app-nodejs \
+             --set image.tag=${{ github.run_id }} \
+             --set image.pullPolicy=IfNotPresent \
+             --debug
             
-            echo "Checking namespace..."
-            kubectl get ns | grep todo-app-ns
-            
-            echo "Checking deployments..."
-            kubectl get deployments -n todo-app-ns
+            echo "Waiting for deployment..."
+            kubectl rollout status deployment/todo-app-nodejs -n todo-app-ns --timeout=180s
             
             echo "Checking pods..."
             kubectl get pods -n todo-app-ns
 
-            kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns &
-
+            # Only start port-forward if deployment is successful
+            if [ $? -eq 0 ]; then
+              kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns &
+            fi
+            
   success-notification:
     needs: deploy-to-kind
     runs-on: ubuntu-latest
