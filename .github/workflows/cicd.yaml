@@ -249,7 +249,7 @@ jobs:
             minikube service todo-app-nodejs --url
           EOF
   success-notification:
-    needs: deploy
+    needs: deploy-to-minikube
     runs-on: ubuntu-latest
     if: success()
     steps:
