@@ -6,7 +6,7 @@ replicaCount: 1
 
 image:
   repository: roohmeiy/todo-app-nodejs
-  pullPolicy: IfNotPresent
+  imagePullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
   tag: "12602468744"
 

@@ -89,8 +89,8 @@ jobs:
 
       - name: Update tag in Helm chart
         run: |
-          sed -i 's/tag: .*/tag: "${{github.run_id}}"/' helm/todo-app-chart/values.yaml
-
+          # sed -i 's/tag: .*/tag: "${{github.run_id}}"/' helm/todo-app-chart/values.yaml
+          sed -i "s/tag:.*/tag: ${GITHUB_RUN_ID}/" helm/todo-app-chart/values.yaml
       - name: Commit and push changes
         run: |
           git config --global user.email "roohmeiy@gmail.com"
