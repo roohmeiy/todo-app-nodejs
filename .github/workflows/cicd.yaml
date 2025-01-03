@@ -94,6 +94,7 @@ jobs:
         run: |
           git config --global user.email "roohmeiy@gmail.com"
           git config --global user.name "Payal Sharma"
+          git Checkout main
           git add helm/todo-app-chart/values.yaml
           git commit -m "Update tag in Helm chart"
           git push origin main
