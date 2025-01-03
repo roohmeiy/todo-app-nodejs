@@ -149,45 +149,10 @@ jobs:
             
             echo "Checking pods..."
             kubectl get pods -n todo-app-ns
-
-            # Port forwarding function with retry logic
-            setup_port_forward() {
-              # Kill any existing port-forward processes
-              pkill -f "kubectl port-forward.*todo-app-nodejs-service" || true
-              
-              # Start port-forward in background
-              nohup kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns > /tmp/port-forward.log 2>&1 &
-              
-              # Wait briefly to check if port-forward started successfully
-              sleep 5
-              if pgrep -f "kubectl port-forward.*todo-app-nodejs-service" > /dev/null; then
-                echo "Port forwarding started successfully"
-                return 0
-              else
-                echo "Port forwarding failed to start"
-                return 1
-              fi
-            }
-
-            # Retry logic for port forwarding
-            MAX_RETRIES=5
-            RETRY_DELAY=10
-            RETRY_COUNT=0
-
-            echo "Setting up port forwarding with retries..."
-            until setup_port_forward || [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
-              RETRY_COUNT=$((RETRY_COUNT + 1))
-              echo "Port forwarding attempt $RETRY_COUNT of $MAX_RETRIES failed. Retrying in $RETRY_DELAY seconds..."
-              sleep $RETRY_DELAY
-            done
-
-            if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-              echo "Port forwarding failed after $MAX_RETRIES attempts. Check logs at /tmp/port-forward.log"
-              exit 1
-            else
-              echo "Port forwarding established successfully after $RETRY_COUNT retries"
-            fi
-
+            sleep 60
+            kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns &
+            
+            
   success-notification:
     needs: deploy-to-kind
     runs-on: ubuntu-latest
