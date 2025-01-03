@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: argocd-notifications-cm
-  namespace: argocd
+  namespace: todo-app-ns
 data:
   config.yaml: |
     context:
