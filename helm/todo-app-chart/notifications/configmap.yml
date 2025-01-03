@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+data:
+  config.yaml: |
+    context:
+      argocdUrl: http://localhost:8080
+    email:
+      username: "{{.secret.notification-email-secret.email}}" # 
+      password: "{{.secret.notification-email-secret.smtp-password}}"
+      host: smtp.gmail.com
+      port: 587
