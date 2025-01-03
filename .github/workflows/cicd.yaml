@@ -96,7 +96,7 @@ jobs:
           git config --global user.name "Payal Sharma"
           git add helm/todo-app-chart/values.yaml
           git commit -m "Update tag in Helm chart"
-          git push
+          git push origin main
 
   deploy-to-kind:
     runs-on: ubuntu-latest
