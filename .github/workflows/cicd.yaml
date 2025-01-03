@@ -215,35 +215,24 @@ jobs:
 
   deploy-to-kind:
     runs-on: ubuntu-latest
+    needs: update-newtag-in-helm-chart
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up SSH for local deployment
+      - name: Deploy to Kind Cluster
         uses: appleboy/ssh-action@v0.1.8
         with:
-          host: ${{ secrets.LOCAL_HOST }}         # Use 'localhost' or the local IP address of your machine
-          username: ${{ secrets.LOCAL_USER }}     # Your SSH username on the local machine
-          key: ${{ secrets.LOCAL_SSH_KEY }}       # The private SSH key stored in GitHub Secrets
-          port: 22                               # Default SSH port (adjust if needed)
-          debug: true                            # Enable debugging for SSH connection issues
-
-      - name: Deploy to Kind Cluster
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.LOCAL_USER }}@${{ secrets.LOCAL_HOST }} << 'EOF'
-            # Ensure the cluster is set up and ready
+          host: ${{ secrets.LOCAL_HOST }}
+          username: ${{ secrets.LOCAL_USER }}
+          key: ${{ secrets.LOCAL_SSH_KEY }}
+          script: |
             kubectl cluster-info --context kind-my-cluster
-
-            # Update Helm repos and deploy the updated chart
+            cd ~/helm-charts  # Make sure this directory exists or use an absolute path
             helm repo update
-            helm upgrade --install todo-app-nodejs helm/todo-app-chart --namespace default --create-namespace
-
-            # Verify the pods are deployed correctly
-            kubectl get pods -n default
-
-            # Port forward to access the app
-            kubectl port-forward svc/todo-app-nodejs 3000:3000 -n todo-app-ns &
-          EOF
+            helm upgrade --install todo-app-nodejs helm/todo-app-chart --namespace todo-app-ns --create-namespace
+            kubectl get pods -n todo-app-ns
+            nohup kubectl port-forward svc/todo-app-nodejs 3000:3000 -n todo-app-ns > /dev/null 2>&1 &
 
   success-notification:
     needs: deploy-to-kind
