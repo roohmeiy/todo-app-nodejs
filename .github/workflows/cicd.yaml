@@ -259,6 +259,7 @@ jobs:
             
             View the deployment: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           to: ${{ secrets.NOTIFY_EMAIL }}
+          from: ${{ secrets.EMAIL_USERNAME }}
 
   failure-notification:
     if: failure()
@@ -285,3 +286,4 @@ jobs:
             Please check the workflow logs for more details:
             ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           to: ${{ secrets.NOTIFY_EMAIL }}
+          from: ${{ secrets.EMAIL_USERNAME }}
