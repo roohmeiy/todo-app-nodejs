@@ -113,16 +113,34 @@ jobs:
           username: ${{ secrets.LOCAL_USER }}
           key: ${{ secrets.LOCAL_SSH_KEY }}
           script: |
+            echo "Checking cluster connection..."
             kubectl cluster-info --context kind-my-cluster
-            cd ~/helm-charts  # Make sure this directory exists or use an absolute path
-            helm repo update
-            # Add --force flag to ensure update
-            helm upgrade --install todo-app-nodejs helm/todo-app-chart --namespace todo-app-ns --create-namespace --force
-            # Force rollout restart
-            kubectl rollout restart deployment/todo-app-nodejs -n todo-app-ns
-            # Wait for rollout to complete
-            kubectl rollout status deployment/todo-app-nodejs -n todo-app-ns
+            
+            echo "Checking current directory..."
+            pwd
+            
+            echo "Listing directory contents..."
+            ls -la
+            
+            echo "Checking helm-charts directory..."
+            cd ~/helm-charts || exit 1
+            ls -la
+            
+            echo "Checking helm/todo-app-chart path..."
+            ls -la helm/todo-app-chart || echo "Chart directory not found"
+            
+            echo "Running helm with debug..."
+            helm upgrade --install todo-app-nodejs helm/todo-app-chart --namespace todo-app-ns --create-namespace --debug
+            
+            echo "Checking namespace..."
+            kubectl get ns | grep todo-app-ns
+            
+            echo "Checking deployments..."
+            kubectl get deployments -n todo-app-ns
+            
+            echo "Checking pods..."
             kubectl get pods -n todo-app-ns
+
             kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns &
 
   success-notification:
