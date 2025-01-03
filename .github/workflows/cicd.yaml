@@ -130,7 +130,13 @@ jobs:
             ls -la helm/todo-app-chart || echo "Chart directory not found"
             
             echo "Running helm with debug..."
-            helm upgrade --install todo-app-nodejs todo-app-chart --namespace todo-app-ns --create-namespace --debug
+            # helm upgrade --install todo-app-nodejs todo-app-chart --namespace todo-app-ns --create-namespace --debug
+            helm upgrade --install todo-app-nodejs todo-app-chart \
+             --namespace todo-app-ns --create-namespace \
+             --set image.repository=docker.io/roohmeiy/todo-app-nodejs \
+             --set image.tag=${GITHUB_RUN_ID} \
+              --set image.pullPolicy=Always --debug
+
             
             echo "Checking namespace..."
             kubectl get ns | grep todo-app-ns
