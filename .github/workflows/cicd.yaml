@@ -117,12 +117,12 @@ jobs:
             kubectl cluster-info --context kind-my-cluster
             cd ~/helm-charts  # Make sure this directory exists or use an absolute path
             helm repo update
-            helm upgrade --install todo-app-nodejs helm/todo-app-chart \
-            --namespace todo-app-ns --create-namespace \
-            --set image.repository=docker.io/roohmeiy/todo-app-nodejs \
-            --set image.tag=${{ github.run_id }} \
-            --set image.pullPolicy=Always
-
+            # Add --force flag to ensure update
+            helm upgrade --install todo-app-nodejs helm/todo-app-chart --namespace todo-app-ns --create-namespace --force
+            # Force rollout restart
+            kubectl rollout restart deployment/todo-app-nodejs -n todo-app-ns
+            # Wait for rollout to complete
+            kubectl rollout status deployment/todo-app-nodejs -n todo-app-ns
             kubectl get pods -n todo-app-ns
             kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns &
 
