@@ -223,19 +223,27 @@ jobs:
         uses: appleboy/ssh-action@v0.1.8
         with:
           host: ${{ secrets.LOCAL_HOST }}         # Use 'localhost' or the local IP address of your machine
-          username: ${{ secrets.LOCAL_USER }}  # Your SSH username on the local machine
-          key: ${{ secrets.LOCAL_SSH_KEY }}    # The private SSH key stored in GitHub Secrets
-          port: 22  # Default SSH port (adjust if needed)
+          username: ${{ secrets.LOCAL_USER }}     # Your SSH username on the local machine
+          key: ${{ secrets.LOCAL_SSH_KEY }}       # The private SSH key stored in GitHub Secrets
+          port: 22                               # Default SSH port (adjust if needed)
+          debug: true                            # Enable debugging for SSH connection issues
 
       - name: Deploy to Kind Cluster
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.LOCAL_USER }}@${{ secrets.LOCAL_HOST }} << 'EOF'
-           cluster-info --context kind-kind
-           helm repo update
-           helm upgrade --install todo-app-nodejs helm/todo-app-chart --namespace default --create-namespace
-           kubectl get pods -n default
-           kubectl port-forward svc/todo-app-nodejs 3000:3000 -n todo-app-ns &
-           EOF
+            # Ensure the cluster is set up and ready
+            kubectl cluster-info --context kind-my-cluster
+
+            # Update Helm repos and deploy the updated chart
+            helm repo update
+            helm upgrade --install todo-app-nodejs helm/todo-app-chart --namespace default --create-namespace
+
+            # Verify the pods are deployed correctly
+            kubectl get pods -n default
+
+            # Port forward to access the app
+            kubectl port-forward svc/todo-app-nodejs 3000:3000 -n todo-app-ns &
+          EOF
 
   success-notification:
     needs: deploy-to-kind
