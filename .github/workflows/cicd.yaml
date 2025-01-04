@@ -344,10 +344,9 @@ jobs:
             
             echo "Checking helm/todo-app-chart path..."
             ls -la todo-app-chart || echo "Chart directory not found"
-            
             echo "Running helm with debug..."
             # helm upgrade --install todo-app-nodejs todo-app-chart --namespace todo-app-ns --create-namespace --debug
-            
+            kubectl delete replicasets --all -n todo-app-ns || echo "No replicasets to delete"
             helm upgrade --install todo-app-nodejs todo-app-chart \
              --namespace todo-app-ns --create-namespace \
              --set image.repository=roohmeiy/todo-app-nodejs \
@@ -362,10 +361,11 @@ jobs:
             sleep 30
             echo "Cleaning up any existing port-forward processes..."
             pkill -f "kubectl port-forward" || true
+            
             sleep 5
+            
             echo "Starting new port forward..."
-            kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns >&
-              
+            kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns &  
          
   success-notification:
     needs: deploy-to-kind
