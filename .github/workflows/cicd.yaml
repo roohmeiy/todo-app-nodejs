@@ -364,19 +364,8 @@ jobs:
             pkill -f "kubectl port-forward" || true
             sleep 5
             echo "Starting new port forward..."
-            nohup kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns > /tmp/port-forward.log 2>&1 &
-            PF_PID=$!
-            sleep 10
-            if ! ps -p $PF_PID > /dev/null; then
-            echo "Failed to establish new port-forward"
-            cat /tmp/port-forward.log
-            exit 1
-            else
-            echo "New port-forward successfully established"
-            fi
-            sleep 50
-            
-            
+            kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns >&
+              
          
   success-notification:
     needs: deploy-to-kind
