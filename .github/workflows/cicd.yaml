@@ -360,8 +360,15 @@ jobs:
             
             echo "Checking pods..."
             kubectl get pods -n todo-app-ns
-            sleep 60
+            sleep 30
+            echo "Cleaning up any existing port-forward processes..."
+            pkill -f "kubectl port-forward" || true
+            # Give system time to fully release the port
+            sleep 5
+            echo "Starting port forward..."
             nohup kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns > /tmp/port-forward.log 2>&1 &
+            # Wait to ensure port-forward is established
+            sleep 20
          
   success-notification:
     needs: deploy-to-kind
