@@ -357,18 +357,26 @@ jobs:
             
             echo "Waiting for deployment..."
             kubectl rollout status deployment/todo-app-nodejs -n todo-app-ns --timeout=180s
-            
             echo "Checking pods..."
             kubectl get pods -n todo-app-ns
             sleep 30
             echo "Cleaning up any existing port-forward processes..."
             pkill -f "kubectl port-forward" || true
-            # Give system time to fully release the port
             sleep 5
-            echo "Starting port forward..."
+            echo "Starting new port forward..."
             nohup kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns > /tmp/port-forward.log 2>&1 &
-            # Wait to ensure port-forward is established
-            sleep 20
+            PF_PID=$!
+            sleep 10
+            if ! ps -p $PF_PID > /dev/null; then
+            echo "Failed to establish new port-forward"
+            cat /tmp/port-forward.log
+            exit 1
+            else
+            echo "New port-forward successfully established"
+            fi
+            sleep 50
+            
+            
          
   success-notification:
     needs: deploy-to-kind
