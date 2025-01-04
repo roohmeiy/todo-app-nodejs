@@ -76,30 +76,28 @@ EMAIL_PASSWORD              # SMTP email password
 NOTIFY_EMAIL               # Notification recipient email
 TOKEN                      # GitHub personal access token
 ```
+---
 
-## 📥 Installation
+Generate ssh key
 
-1. Clone the repository:
 ```bash
-git clone https://github.com/roohmeiy/todo-app-nodejs.git
-cd todo-app-nodejs
+ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+```
+The command generates:
+- Private key: Default location is ~/.ssh/id_rsa.
+- Public key: Default location is ~/.ssh/id_rsa.pub.
+Copy paste the public key in ~/.ssh/authorized_keys and give appropriate permissions
+
+```bash
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
 ```
 
-2. Install dependencies:
-```bash
-npm install
-```
+Then add the privare rsa key in secrets in github.
 
-3. Setup Kind cluster:
-```bash
-kind create cluster --name my-cluster
-```
+---
 
-4. Add Helm repository:
-```bash
-helm repo add todo-app-nodejs ./helm/todo-app-chart
-helm repo update
-```
+
 
 ## 🔄 Workflow Triggers
 
@@ -120,6 +118,7 @@ The application automatically deploys when:
 
 Manual deployment:
 ```bash
+cd todo-app-nodejs/helm
 helm upgrade --install todo-app-nodejs helm/todo-app-chart --namespace todo-app-ns --create-namespace
 ```
 
