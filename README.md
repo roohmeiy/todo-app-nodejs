@@ -61,14 +61,6 @@ Email Notifications
 5. **Notification Stage**
    - Success/Failure email notifications
 
-## ⚙️ Prerequisites
-
-- Node.js 18.x
-- Docker
-- Kubernetes Kind cluster
-- Helm 3.x
-- GitHub account
-- DockerHub account
 
 ## 🔑 Required Secrets
 
