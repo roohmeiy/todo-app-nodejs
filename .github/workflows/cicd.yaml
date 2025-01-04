@@ -362,9 +362,8 @@ jobs:
             echo "Cleaning up any existing processes on port 3000..."
             lsof -t -i :3000 | xargs kill -9 || echo "No process found on port 3000"  
             echo "Starting port-forward process in background..."
-            nohup kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns &
-            echo "Port-forward process is running in background. Check logs for status."
             nohup kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns > /tmp/port-forward.log 2>&1 &
+            echo "Port-forward process is running in background. Check logs for status."
 
             
   success-notification:
