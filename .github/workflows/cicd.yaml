@@ -364,6 +364,7 @@ jobs:
             echo "Starting port-forward process in background..."
             nohup kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns &
             echo "Port-forward process is running in background. Check logs for status."
+            exit 0
             
   success-notification:
     needs: deploy-to-kind
