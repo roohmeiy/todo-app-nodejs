@@ -123,6 +123,7 @@ jobs:
           --set image.tag=${{ github.run_id }} \
           --set image.pullPolicy=IfNotPresent \
           --debug
+          
           echo "⏳ Waiting for deployment to be ready..."
             kubectl rollout status deployment/todo-app-nodejs-deployment -n todo-app-ns --timeout=180s
             echo "Checking pods..."
@@ -133,11 +134,17 @@ jobs:
             echo "Starting port-forward process in background..."
             sleep 10
             nohup kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns > /tmp/port-forward.log 2>&1 &
-            sleep 15
-            echo "deployment successful"
-           
             
-            
+            # Wait and verify port-forward is working
+            for i in {1..10}; do
+              if netstat -tuln | grep -q ":3000 "; then
+                echo "✅ Port-forward successfully established"
+                break
+              fi
+              echo "Waiting for port-forward... attempt $i/10"
+              sleep 5
+            done
+
 
   success-notification:
     needs: deploy-to-kind
