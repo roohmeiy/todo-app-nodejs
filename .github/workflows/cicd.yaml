@@ -131,7 +131,7 @@ jobs:
           # pkill -f "kubectl port-forward" || echo "No existing port-forward process found"
           # nohup kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns > /tmp/port-forward.log 2>&1 &
           # echo "✅ Port-forwarding started. Check /tmp/port-forward.log for logs."
-          kubectl rollout status deployment/todo-app-nodejs -n todo-app-ns --timeout=180s
+            kubectl rollout status deployment/todo-app-nodejs-deployment -n todo-app-ns --timeout=180s
             echo "Checking pods..."
             kubectl get pods -n todo-app-ns
             sleep 30
