@@ -102,7 +102,7 @@ jobs:
           git push
 
   deploy-to-kind:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: update-newtag-in-helm-chart
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
@@ -110,52 +110,27 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy to Kind Cluster
-        uses: appleboy/ssh-action@v0.1.8
-        with:
-          host: ${{ secrets.LOCAL_HOST }}
-          username: ${{ secrets.LOCAL_USER }}
-          key: ${{ secrets.LOCAL_SSH_KEY }}
-          script: |
-            echo "Checking cluster connection..."
-            kubectl cluster-info --context kind-my-cluster
-            
-            echo "Checking current directory..."
-            pwd
-            
-            echo "Listing directory contents..."
-            ls -la
-            
-            echo "Loading image into Kind cluster..."
-            docker pull roohmeiy/todo-app-nodejs:${{ github.run_id }}
-            kind load docker-image roohmeiy/todo-app-nodejs:${{ github.run_id }} --name my-cluster
-
-            echo "Checking helm-charts directory..."
-            cd /home/ubuntu/todo-app-nodejs/helm || exit 1
-            ls -la
-            
-            echo "Checking helm/todo-app-chart path..."
-            ls -la todo-app-chart || echo "Chart directory not found"
-            echo "Running helm with debug..."
-            # helm upgrade --install todo-app-nodejs todo-app-chart --namespace todo-app-ns --create-namespace --debug
-            kubectl delete replicasets --all -n todo-app-ns || echo "No replicasets to delete"
-            helm upgrade --install todo-app-nodejs todo-app-chart \
-             --namespace todo-app-ns --create-namespace \
-             --set image.repository=roohmeiy/todo-app-nodejs \
-             --set image.tag=${{ github.run_id }} \
-             --set image.pullPolicy=IfNotPresent \
-             --debug
-            
-            echo "Waiting for deployment..."
-            kubectl rollout status deployment/todo-app-nodejs -n todo-app-ns --timeout=180s
-            echo "Checking pods..."
-            kubectl get pods -n todo-app-ns
-            sleep 30
-            echo "Cleaning up any existing processes on port 3000..."
-            lsof -t -i :3000 | xargs kill -9 || echo "No process found on port 3000"  
-            echo "Starting port-forward process in background..."
-            nohup kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns > /tmp/port-forward.log 2>&1 &
-            echo "Port-forward process is running in background. Check logs for status."
-
+        run: |
+          kubectl cluster-info --context kind-my-cluster
+          docker pull roohmeiy/todo-app-nodejs:${{ github.run_id }}
+          kind load docker-image roohmeiy/todo-app-nodejs:${{ github.run_id }} --name my-cluster
+          cd helm/todo-app-chart || exit 1
+          echo "🚀 Deploying with Helm..."
+          kubectl delete replicasets --all -n todo-app-ns || echo "No replicasets to delete"
+          helm upgrade --install todo-app-nodejs . \
+          --namespace todo-app-ns --create-namespace \
+          --set image.repository=roohmeiy/todo-app-nodejs \
+          --set image.tag=${{ github.run_id }} \
+          --set image.pullPolicy=IfNotPresent \
+          --debug
+          echo "⏳ Waiting for deployment to be ready..."
+          kubectl rollout status deployment/todo-app-nodejs -n todo-app-ns --timeout=180s
+          echo "📦 Checking pods in 'todo-app-ns' namespace..."
+          kubectl get pods -n todo-app-ns
+          echo "⚡ Restarting port-forward on port 3000..."
+          pkill -f "kubectl port-forward" || echo "No existing port-forward process found"
+          nohup kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns > /tmp/port-forward.log 2>&1 &
+          echo "✅ Port-forwarding started. Check /tmp/port-forward.log for logs."
             
   success-notification:
     needs: deploy-to-kind
