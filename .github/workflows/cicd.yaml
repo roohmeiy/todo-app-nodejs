@@ -134,6 +134,7 @@ jobs:
             sleep 60
             nohup kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns > /tmp/port-forward.log 2>&1 &
             sleep 15
+            echo "deployment successful"
            
             
             
