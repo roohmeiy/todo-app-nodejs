@@ -144,10 +144,15 @@ jobs:
             pgrep -f "kubectl port-forward.*3000:3000" | xargs kill || echo "No process found on port 3000"
             sleep 5
             echo "Starting port-forward process in background..."
-            kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns > /tmp/port-forward.log 2>&1 &
+            nohup kubectl port-forward --address 0.0.0.0 svc/todo-app-nodejs-service 3000:3000 -n todo-app-ns >> /tmp/port-forward.log 2>&1 &
             PID=$!
+            sleep 10
+            if ! netstat -tunlp 2>/dev/null | grep ":3000"; then
+              echo "❌ Port-forward failed to establish"
+              exit 1
+            fi
             disown $PID
-            echo "Port-forward process is running in background with PID: $PID"
+            echo "✅ Port-forward process is running in background with PID: $PID"
 
   success-notification:
     needs: deploy-to-kind
