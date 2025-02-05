@@ -41,9 +41,6 @@ jobs:
           args: >
             -Dsonar.projectKey=todo-app-nodejs
             -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
-            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
-            -Dsonar.pullrequest.branch=${{ github.head_ref }}
-            -Dsonar.pullrequest.base=${{ github.base_ref }}
 
       - name: SonarQube Quality Gate
         uses: sonarsource/sonarqube-quality-gate-action@master
