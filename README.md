@@ -37,13 +37,8 @@ Email Notifications
 
 ## 🚀 CI/CD Pipeline Stages
 
-1. **Test Stage**
-   - Code checkout
-   - Node.js setup
-   - Dependencies installation
-   - Code quality checks (ESLint)
-   - Security audit
-   - Unit tests execution
+1. **Sonarqube Stage**
+  for code quality check
 
 2. **Build & Push Stage**
    - Docker image build
@@ -68,9 +63,8 @@ Configure these secrets in your GitHub repository:
 
 ```
 DOCKER_PERSONAL_ACCESS_TOKEN  # DockerHub access token
-LOCAL_HOST                   # Kind cluster host
-LOCAL_USER                   # SSH username
-LOCAL_SSH_KEY               # SSH private key
+SONAR_TOKEN
+SONAR_HOST_URL
 EMAIL_USERNAME              # SMTP email username
 EMAIL_PASSWORD              # SMTP email password
 NOTIFY_EMAIL               # Notification recipient email
