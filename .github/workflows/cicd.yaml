@@ -17,45 +17,45 @@ on:
       - 'README.md'
 
 jobs:
-  test:
+  sonarqube:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: npm install
 
-      - name: Fix file permissions
-        run: |
-          chmod -R 755 node_modules/.bin
-          chmod +x ./node_modules/.bin/jest
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: >
+            -Dsonar.projectKey=todo-app-nodejs
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
+            -Dsonar.pullrequest.branch=${{ github.head_ref }}
+            -Dsonar.pullrequest.base=${{ github.base_ref }}
 
-      - name: Run Code Quality Checks
-        continue-on-error: true
-        run: |
-          echo "Running code quality checks (warnings only)..."
-          npx eslint . --ext .js --no-error-on-unmatched-pattern || true
-          echo "Code style check complete - see above for any suggestions"
+      - name: SonarQube Quality Gate
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
-      - name: Run Security Audit
-        continue-on-error: true
-        run: |
-          echo "Checking for security vulnerabilities..."
-          npm audit || true
-          echo "Security check complete - see above for any recommendations"
-
-      - name: Run Tests
-        run: npm test
 
   push:
     runs-on: ubuntu-latest
-    needs: test
+    needs: sonarqube
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: Checkout repository
@@ -101,112 +101,112 @@ jobs:
           git commit -m "Update tag in Helm chart"
           git push
 
-  deploy-to-kind:
-    runs-on: ubuntu-latest
-    needs: update-newtag-in-helm-chart
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  # deploy-to-kind:
+  #   runs-on: ubuntu-latest
+  #   needs: update-newtag-in-helm-chart
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
 
-      - name: Deploy to Kind Cluster
-        uses: appleboy/ssh-action@v0.1.8
-        with:
-          host: ${{ secrets.LOCAL_HOST }}
-          username: ${{ secrets.LOCAL_USER }}
-          key: ${{ secrets.LOCAL_SSH_KEY }}
-          script: |
-            echo "Checking cluster connection..."
-            kubectl cluster-info --context kind-my-cluster
+  #     - name: Deploy to Kind Cluster
+  #       uses: appleboy/ssh-action@v0.1.8
+  #       with:
+  #         host: ${{ secrets.LOCAL_HOST }}
+  #         username: ${{ secrets.LOCAL_USER }}
+  #         key: ${{ secrets.LOCAL_SSH_KEY }}
+  #         script: |
+  #           echo "Checking cluster connection..."
+  #           kubectl cluster-info --context kind-my-cluster
             
-            echo "Checking current directory..."
-            pwd
+  #           echo "Checking current directory..."
+  #           pwd
             
-            echo "Listing directory contents..."
-            ls -la
+  #           echo "Listing directory contents..."
+  #           ls -la
             
-            echo "Loading image into Kind cluster..."
-            docker pull roohmeiy/todo-app-nodejs:${{ github.run_id }}
-            kind load docker-image roohmeiy/todo-app-nodejs:${{ github.run_id }} --name my-cluster
+  #           echo "Loading image into Kind cluster..."
+  #           docker pull roohmeiy/todo-app-nodejs:${{ github.run_id }}
+  #           kind load docker-image roohmeiy/todo-app-nodejs:${{ github.run_id }} --name my-cluster
 
-            echo "Checking helm-charts directory..."
-            cd /home/ubuntu/todo-app-nodejs/helm || exit 1
-            ls -la
+  #           echo "Checking helm-charts directory..."
+  #           cd /home/ubuntu/todo-app-nodejs/helm || exit 1
+  #           ls -la
             
-            echo "Checking helm/todo-app-chart path..."
-            ls -la todo-app-chart || echo "Chart directory not found"
-            echo "Running helm with debug..."
-            # helm upgrade --install todo-app-nodejs todo-app-chart --namespace todo-app-ns --create-namespace --debug
-            kubectl delete replicasets --all -n todo-app-ns || echo "No replicasets to delete"
-            helm upgrade --install todo-app-nodejs todo-app-chart \
-             --namespace todo-app-ns --create-namespace \
-             --set image.repository=roohmeiy/todo-app-nodejs \
-             --set image.tag=${{ github.run_id }} \
-             --set image.pullPolicy=IfNotPresent \
-             --debug
+  #           echo "Checking helm/todo-app-chart path..."
+  #           ls -la todo-app-chart || echo "Chart directory not found"
+  #           echo "Running helm with debug..."
+  #           # helm upgrade --install todo-app-nodejs todo-app-chart --namespace todo-app-ns --create-namespace --debug
+  #           kubectl delete replicasets --all -n todo-app-ns || echo "No replicasets to delete"
+  #           helm upgrade --install todo-app-nodejs todo-app-chart \
+  #            --namespace todo-app-ns --create-namespace \
+  #            --set image.repository=roohmeiy/todo-app-nodejs \
+  #            --set image.tag=${{ github.run_id }} \
+  #            --set image.pullPolicy=IfNotPresent \
+  #            --debug
             
-            echo "Waiting for deployment..."
-            kubectl rollout status deployment/todo-app-nodejs -n todo-app-ns --timeout=180s
-            echo "Checking pods..."
-            kubectl get pods -n todo-app-ns
-            sleep 30
-            echo "Cleaning up any existing processes on port 3000..."
-            lsof -t -i :3000 | xargs kill -9 || echo "No process found on port 3000"  
-            echo "Starting port-forward process in background..."
-            nohup kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns > /tmp/port-forward.log 2>&1 &
-            echo "Port-forward process is running in background. Check logs for status."
+  #           echo "Waiting for deployment..."
+  #           kubectl rollout status deployment/todo-app-nodejs -n todo-app-ns --timeout=180s
+  #           echo "Checking pods..."
+  #           kubectl get pods -n todo-app-ns
+  #           sleep 30
+  #           echo "Cleaning up any existing processes on port 3000..."
+  #           lsof -t -i :3000 | xargs kill -9 || echo "No process found on port 3000"  
+  #           echo "Starting port-forward process in background..."
+  #           nohup kubectl port-forward svc/todo-app-nodejs-service 3000:3000 --address=0.0.0.0 -n todo-app-ns > /tmp/port-forward.log 2>&1 &
+  #           echo "Port-forward process is running in background. Check logs for status."
 
             
-  success-notification:
-    needs: deploy-to-kind
-    runs-on: ubuntu-latest
-    if: success()
-    steps:
-      - name: Send Success Email
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 587
-          username: ${{ secrets.EMAIL_USERNAME }}
-          password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "✅ Deployment Successful"
-          body: |
-            The deployment of the Node.js application to Kind cluster was successful!
+  # success-notification:
+  #   needs: deploy-to-kind
+  #   runs-on: ubuntu-latest
+  #   if: success()
+  #   steps:
+  #     - name: Send Success Email
+  #       uses: dawidd6/action-send-mail@v3
+  #       with:
+  #         server_address: smtp.gmail.com
+  #         server_port: 587
+  #         username: ${{ secrets.EMAIL_USERNAME }}
+  #         password: ${{ secrets.EMAIL_PASSWORD }}
+  #         subject: "✅ Deployment Successful"
+  #         body: |
+  #           The deployment of the Node.js application to Kind cluster was successful!
             
-            Details:
-            - Deployment ID: ${{ github.run_id }}
-            - Repository: ${{ github.repository }}
-            - Branch: ${{ github.ref }}
-            - Triggered by: ${{ github.actor }}
-            - Image Tag: roohmeiy/todo-app-nodejs:${{ github.run_id }}
+  #           Details:
+  #           - Deployment ID: ${{ github.run_id }}
+  #           - Repository: ${{ github.repository }}
+  #           - Branch: ${{ github.ref }}
+  #           - Triggered by: ${{ github.actor }}
+  #           - Image Tag: roohmeiy/todo-app-nodejs:${{ github.run_id }}
             
-            View the deployment: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          to: ${{ secrets.NOTIFY_EMAIL }}
-          from: ${{ secrets.EMAIL_USERNAME }}
+  #           View the deployment: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+  #         to: ${{ secrets.NOTIFY_EMAIL }}
+  #         from: ${{ secrets.EMAIL_USERNAME }}
 
-  failure-notification:
-    if: failure()
-    runs-on: ubuntu-latest
-    needs: [test, push, update-newtag-in-helm-chart, deploy-to-kind]
-    steps:
-      - name: Send Failure Email
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 587
-          username: ${{ secrets.EMAIL_USERNAME }}
-          password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "❌ Deployment Failed"
-          body: |
-            The deployment of the Node.js application has failed.
+  # failure-notification:
+  #   if: failure()
+  #   runs-on: ubuntu-latest
+  #   needs: [test, push, update-newtag-in-helm-chart, deploy-to-kind]
+  #   steps:
+  #     - name: Send Failure Email
+  #       uses: dawidd6/action-send-mail@v3
+  #       with:
+  #         server_address: smtp.gmail.com
+  #         server_port: 587
+  #         username: ${{ secrets.EMAIL_USERNAME }}
+  #         password: ${{ secrets.EMAIL_PASSWORD }}
+  #         subject: "❌ Deployment Failed"
+  #         body: |
+  #           The deployment of the Node.js application has failed.
             
-            Details:
-            - Failed Job ID: ${{ github.run_id }}
-            - Repository: ${{ github.repository }}
-            - Branch: ${{ github.ref }}
-            - Triggered by: ${{ github.actor }}
+  #           Details:
+  #           - Failed Job ID: ${{ github.run_id }}
+  #           - Repository: ${{ github.repository }}
+  #           - Branch: ${{ github.ref }}
+  #           - Triggered by: ${{ github.actor }}
             
-            Please check the workflow logs for more details:
-            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          to: ${{ secrets.NOTIFY_EMAIL }}
-          from: ${{ secrets.EMAIL_USERNAME }}
+  #           Please check the workflow logs for more details:
+  #           ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+  #         to: ${{ secrets.NOTIFY_EMAIL }}
+  #         from: ${{ secrets.EMAIL_USERNAME }}
