@@ -4,7 +4,7 @@ A complete CI/CD implementation for a Node.js Todo application using GitHub Acti
 
 ## Prerequisites
 
-- kind clsuter
+- kind cluster
 - helm installed
 - kubectl installed
 - docker installed
@@ -39,21 +39,23 @@ Email Notifications
 
 1. **Sonarqube Stage**
   for code quality check
-
-2. **Build & Push Stage**
+```bash
+docker run -itd --name SonarQube-Server -p 9000:9000 sonarqube:lts-community
+```
+3. **Build & Push Stage**
    - Docker image build
    - Push to DockerHub registry
 
-3. **Helm Update Stage**
+4. **Helm Update Stage**
    - Update image tag in Helm chart
    - Commit and push changes
 
-4. **Deployment Stage**
+5. **Deployment Stage**
    - Deploy to Kind cluster
    - Health check
    - Port forwarding setup
 
-5. **Notification Stage**
+6. **Notification Stage**
    - Success/Failure email notifications
 
 
