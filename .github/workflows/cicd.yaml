@@ -9,8 +9,8 @@ on:
       - 'k8s/**'
       - 'README.md'
   push:
-    branches:
-      - main
+    # branches:
+    #   - main
     paths-ignore:
       - 'helm/**'
       - 'k8s/**'
